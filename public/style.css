@@ -1,0 +1,30 @@
+:root {
+    color-scheme: light;
+}
+body {
+    font-family: monospace;
+    max-width: 800px;
+    padding: 20px;
+    line-height: 1.6;
+}
+h1,
+h2,
+h3 {
+    font-size: inherit;
+    font-weight: inherit;
+}
+a {
+    color: inherit;
+}
+.post {
+    margin-bottom: 3rem;
+}
+.back-link {
+    display: inline-block;
+    margin-bottom: 2rem;
+}
+ul,
+ol {
+    list-style: none;
+    padding-left: 0;
+}

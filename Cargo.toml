@@ -1,0 +1,16 @@
+[package]
+name = "smitbarmase.com"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+askama = "0.14"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+gray_matter = "0.2"
+walkdir = "2"
+chrono = "0.4"
+regex = "1"
+indicatif = "0.17"
+pulldown-cmark = "0.13.0"
