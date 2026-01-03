@@ -16,12 +16,8 @@ h3 {
 a {
     color: inherit;
 }
-.post {
-    margin-bottom: 3rem;
-}
-.back-link {
-    display: inline-block;
-    margin-bottom: 2rem;
+.back {
+    margin-bottom: 20px;
 }
 ul,
 ol {

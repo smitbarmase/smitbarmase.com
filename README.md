@@ -8,7 +8,7 @@ cargo run --release
 
 The generated site will be in the `dist/` directory.
 
-Server locally:
+Serve locally:
 
 ```bash
 bunx serve dist

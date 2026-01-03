@@ -11,7 +11,7 @@ use config::Config;
 use content::get_posts;
 use templates::{IndexTemplate, PostTemplate, SitemapTemplate};
 
-use crate::utils::copy_dir_recursive;
+use crate::utils::{copy_dir_recursive, stylize_html};
 
 const CONTENT_DIR: &str = "content";
 const DIST_DIR: &str = "dist";
@@ -55,8 +55,9 @@ fn main() {
             content: &post.content,
         };
         let output = template.render().expect("Failed to render post template");
+        let styled_output = stylize_html(&output);
         let output_path = dist_path.join(format!("{}.html", post.slug));
-        fs::write(&output_path, output).expect("Failed to write post file");
+        fs::write(&output_path, styled_output).expect("Failed to write post file");
     }
 
     // Generate index page
@@ -69,7 +70,8 @@ fn main() {
     let index_output = index_template
         .render()
         .expect("Failed to render index template");
-    fs::write(dist_path.join("index.html"), index_output).expect("Failed to write index file");
+    let styled_index = stylize_html(&index_output);
+    fs::write(dist_path.join("index.html"), styled_index).expect("Failed to write index file");
 
     println!("Generating sitemap");
     let sitemap_template = SitemapTemplate {

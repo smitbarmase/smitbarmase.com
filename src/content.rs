@@ -3,10 +3,11 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use gray_matter::{engine::YAML, Matter};
+use pulldown_cmark::{html, Parser};
 use serde::Deserialize;
 use walkdir::WalkDir;
 
-use crate::utils::{format_date, markdown_to_html};
+use crate::utils::format_date;
 
 #[derive(Debug, Deserialize)]
 struct Frontmatter {
@@ -47,11 +48,15 @@ pub fn get_posts(content_dir: &str) -> Result<Vec<Post>> {
             .context("Invalid UTF-8 in file name")?
             .to_string();
 
+        let parser = Parser::new(&parsed.content);
+        let mut content = String::new();
+        html::push_html(&mut content, parser);
+
         posts.push(Post {
             slug,
             title: frontmatter.title,
             date: format_date(&frontmatter.date)?,
-            content: markdown_to_html(&parsed.content),
+            content: content,
         });
     }
 

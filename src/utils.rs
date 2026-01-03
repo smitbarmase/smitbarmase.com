@@ -2,7 +2,7 @@ use std::{fs, path::Path};
 
 use anyhow::Result;
 use chrono::NaiveDate;
-use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
+use regex::Regex;
 
 pub fn format_date(date_str: &str) -> Result<String> {
     let date = NaiveDate::parse_from_str(date_str, "%Y-%m-%d")?;
@@ -25,98 +25,37 @@ pub fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn markdown_to_html(markdown: &str) -> String {
-    let mut options = Options::empty();
-    options.insert(Options::ENABLE_STRIKETHROUGH);
-    options.insert(Options::ENABLE_TABLES);
+pub fn stylize_html(html_content: &str) -> String {
+    let mut result = html_content.to_string();
 
-    let parser = Parser::new_ext(markdown, options);
-    let mut html = String::new();
-    let mut heading_level = 0;
-    let mut link_text = String::new();
-    let mut link_url = String::new();
-    let mut in_link = false;
+    // Transform links: <a href="url">text</a> → [text](<a href="url">url</a>)
+    let link_re = Regex::new(r#"<a\s+([^>]*href="([^"]+)"[^>]*)>([^<]+)</a>"#).unwrap();
+    result = link_re
+        .replace_all(&result, |caps: &regex::Captures| {
+            let attrs = &caps[1];
+            let url = &caps[2];
+            let text = &caps[3];
+            format!(r#"[{}](<a {}>{}</a>)"#, text, attrs, url)
+        })
+        .to_string();
 
-    for event in parser {
-        match event {
-            Event::Start(Tag::Heading { level, .. }) => {
-                heading_level = level as usize;
-                let prefix = "#".repeat(heading_level);
-                html.push_str(&format!(
-                    r#"<h{}><span aria-hidden="true">{} </span>"#,
-                    heading_level, prefix
-                ));
-            }
-            Event::End(TagEnd::Heading(_)) => {
-                html.push_str(&format!("</h{}>", heading_level));
-            }
-            Event::Start(Tag::List(_)) => {
-                html.push_str("<ul>");
-            }
-            Event::End(TagEnd::List(_)) => {
-                html.push_str("</ul>");
-            }
-            Event::Start(Tag::Item) => {
-                html.push_str(r#"<li><span aria-hidden="true">- </span>"#);
-            }
-            Event::End(TagEnd::Item) => {
-                html.push_str("</li>");
-            }
-            Event::Start(Tag::Paragraph) => {
-                html.push_str("<p>");
-            }
-            Event::End(TagEnd::Paragraph) => {
-                html.push_str("</p>");
-            }
-            Event::Start(Tag::Link { dest_url, .. }) => {
-                in_link = true;
-                link_url = dest_url.to_string();
-                link_text.clear();
-            }
-            Event::End(TagEnd::Link) => {
-                in_link = false;
-                html.push_str(&format!(
-                    r#"[{}](<a href="{}">{}</a>)"#,
-                    link_text, link_url, link_url
-                ));
-            }
-            Event::Text(text) => {
-                if in_link {
-                    link_text.push_str(&text);
-                } else {
-                    html.push_str(&text);
-                }
-            }
-            Event::Code(code) => {
-                html.push_str(&format!("<code>{}</code>", code));
-            }
-            Event::Start(Tag::CodeBlock(_)) => {
-                html.push_str("<pre><code>");
-            }
-            Event::End(TagEnd::CodeBlock) => {
-                html.push_str("</code></pre>");
-            }
-            Event::Start(Tag::Emphasis) => {
-                html.push_str("<em>");
-            }
-            Event::End(TagEnd::Emphasis) => {
-                html.push_str("</em>");
-            }
-            Event::Start(Tag::Strong) => {
-                html.push_str("<strong>");
-            }
-            Event::End(TagEnd::Strong) => {
-                html.push_str("</strong>");
-            }
-            Event::SoftBreak => {
-                html.push('\n');
-            }
-            Event::HardBreak => {
-                html.push_str("<br>");
-            }
-            _ => {}
-        }
+    // Transform list items: <li> → <li><span aria-hidden="true">- </span>
+    let li_re = Regex::new(r"<li>").unwrap();
+    result = li_re
+        .replace_all(&result, r#"<li><span aria-hidden="true">- </span>"#)
+        .to_string();
+
+    // Transform headings: <h1> → <h1><span aria-hidden="true"># </span>
+    for level in 1..=6 {
+        let heading_re = Regex::new(&format!(r"<h{}>", level)).unwrap();
+        let prefix = "#".repeat(level);
+        result = heading_re
+            .replace_all(
+                &result,
+                &format!(r#"<h{}><span aria-hidden="true">{} </span>"#, level, prefix),
+            )
+            .to_string();
     }
 
-    html
+    result
 }

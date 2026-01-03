@@ -1,6 +1,6 @@
 {% extends "layout.html" %} {% block content %}
-<a href="/" class="back-link">back</a>
+<a href="/" class="back">back</a>
 <h1>{{ title }}</h1>
-<p class="post-date">{{ date }}</p>
+<p>{{ date }}</p>
 <article>{{ content|safe }}</article>
 {% endblock %}
