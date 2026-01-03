@@ -4,7 +4,6 @@ mod templates;
 mod utils;
 
 use askama::Template;
-use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
 use std::path::Path;
 
@@ -14,44 +13,37 @@ use templates::{IndexTemplate, PostTemplate, SitemapTemplate};
 
 use crate::utils::copy_dir_recursive;
 
+const CONTENT_DIR: &str = "content";
+const DIST_DIR: &str = "dist";
+const PUBLIC_DIR: &str = "public";
+
 fn main() {
-    let pb = ProgressBar::new(6);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} {msg}")
-            .unwrap()
-            .progress_chars("#>-"),
-    );
+    println!("Loading configuration");
+    let config_path = Path::new(CONTENT_DIR).join("config.toml");
+    let config = Config::load(config_path.to_str().expect("Invalid UTF-8 in config path"));
 
-    // Step 1: Load configuration
-    pb.set_message("Loading configuration");
-    let config = Config::load("content/config.toml");
-    pb.inc(1);
+    println!("Parsing content files");
+    let posts_path = Path::new(CONTENT_DIR)
+        .join(&config.paths.posts)
+        .canonicalize()
+        .expect("Failed to resolve posts path");
+    let posts = get_posts(posts_path.to_str().expect("Invalid UTF-8 in posts path"))
+        .expect("Failed to parse content files");
 
-    // Step 2: Parse content files
-    pb.set_message("Parsing content files");
-    let posts = get_posts(&config.paths.posts).expect("Failed to parse content files");
-    pb.inc(1);
-
-    // Step 3: Setup dist directory
-    pb.set_message("Setting up dist directory");
-    let dist_path = Path::new("dist");
+    println!("Setting up dist directory");
+    let dist_path = Path::new(DIST_DIR);
     if dist_path.exists() {
         fs::remove_dir_all(dist_path).expect("Failed to clean dist directory");
     }
     fs::create_dir_all(dist_path).expect("Failed to create dist directory");
-    pb.inc(1);
 
-    // Step 4: Copy public assets
-    pb.set_message("Copying public assets");
-    let public_path = Path::new("public");
+    println!("Copying public assets");
+    let public_path = Path::new(PUBLIC_DIR);
     if public_path.exists() {
         copy_dir_recursive(public_path, dist_path).expect("Failed to copy public assets");
     }
-    pb.inc(1);
 
-    // Step 5: Generate pages
-    pb.set_message("Generating pages");
+    println!("Generating pages");
 
     // Generate post pages
     for post in &posts {
@@ -78,10 +70,8 @@ fn main() {
         .render()
         .expect("Failed to render index template");
     fs::write(dist_path.join("index.html"), index_output).expect("Failed to write index file");
-    pb.inc(1);
 
-    // Step 6: Generate sitemap
-    pb.set_message("Generating sitemap");
+    println!("Generating sitemap");
     let sitemap_template = SitemapTemplate {
         site_url: &config.site.url,
         posts: &posts,
@@ -90,10 +80,6 @@ fn main() {
         .render()
         .expect("Failed to render sitemap template");
     fs::write(dist_path.join("sitemap.xml"), sitemap_output).expect("Failed to write sitemap");
-    pb.inc(1);
 
-    pb.finish_with_message(format!(
-        "Build complete! Generated {} posts + index",
-        posts.len()
-    ));
+    println!("Build complete. Generated {} posts + index", posts.len());
 }
