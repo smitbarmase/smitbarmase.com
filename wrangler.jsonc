@@ -3,9 +3,9 @@
   "compatibility_date": "2026-01-03",
   "workers_dev": false,
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
   },
   "build": {
-    "command": "curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain stable && export PATH=\"$HOME/.cargo/bin:$PATH\" && cargo run --release"
-  }
+    "command": "./build.sh",
+  },
 }
